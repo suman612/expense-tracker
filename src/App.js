@@ -1,30 +1,32 @@
 // App.jsx
 import React, { useState, useRef, useEffect } from 'react';
+import logo from './logo.jpg'
 import './App.css';
-import * as XLSX from 'xlsx';
 
 const App = () => {
   const [formData, setFormData] = useState({
     studentName: '',
-    age: '',
     parentName: '',
+    studentAge: '',
     address: '',
     contactNo: '',
-    emailId: '',
     references: [],
     activities: []
   });
   const [submitted, setSubmitted] = useState(false);
   const [inquiryId, setInquiryId] = useState('');
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isOfficeMode, setIsOfficeMode] = useState(false);
+  const [officeInquiry, setOfficeInquiry] = useState(null);
   
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
 
   const OFFICE_WHATSAPP = "918587906794";
+  const BASE_URL = window.location.origin + window.location.pathname;
 
   // Reference options
-  const referenceOptions = ['Facebook', 'Instagram', 'YouTube', 'Google', 'Friend'];
+  const referenceOptions = ['Facebook', 'Instagram', 'YouTube', 'Google', 'Friend', 'Other'];
   
   // Activity options
   const activityOptions = [
@@ -32,43 +34,62 @@ const App = () => {
     'Wedding Choreography', 'Theatre', 'Dance Courses', 'Teaching Courses'
   ];
 
+  // Check for office mode on mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const officeMode = urlParams.get('office_mode');
+    const encodedData = urlParams.get('data');
+    
+    if (officeMode === 'true' && encodedData) {
+      try {
+        const inquiry = JSON.parse(decodeURIComponent(encodedData));
+        if (inquiry && inquiry.studentName) {
+          setIsOfficeMode(true);
+          setOfficeInquiry(inquiry);
+        }
+      } catch (e) {
+        console.error('Failed to decode inquiry data');
+      }
+    }
+  }, []);
+
   // Initialize signature pad
   useEffect(() => {
+    if (isOfficeMode) return;
+    
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    // Set canvas dimensions
     const container = canvas.parentElement;
     let width = container.clientWidth;
-    if (width > 500) width = 500;
+    if (width > 540) width = 540;
     canvas.width = width;
     canvas.height = 180;
     
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = '#1e2a3e';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#2c3e2f';
+    ctx.lineWidth = 2.2;
     ctx.lineCap = 'round';
     ctxRef.current = ctx;
     
-    // Handle window resize
     const handleResize = () => {
       const newContainer = canvas.parentElement;
       let newWidth = newContainer.clientWidth;
-      if (newWidth > 500) newWidth = 500;
+      if (newWidth > 540) newWidth = 540;
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       canvas.width = newWidth;
       canvas.height = 180;
       ctx.putImageData(imageData, 0, 0);
-      ctx.strokeStyle = '#1e2a3e';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#2c3e2f';
+      ctx.lineWidth = 2.2;
       ctx.lineCap = 'round';
     };
     
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [isOfficeMode]);
 
   // Drawing functions
   const startDrawing = (e) => {
@@ -180,61 +201,64 @@ const App = () => {
   };
 
   const handleSubmit = () => {
-    const { studentName, age, parentName, address, contactNo, emailId, references, activities } = formData;
+    const { studentName, parentName, studentAge, address, contactNo, references, activities } = formData;
     
-    if (!studentName) { window.alert("⚠️ Student name required"); return; }
-    if (!age) { window.alert("⚠️ Student age required"); return; }
-    if (!parentName) { window.alert("⚠️ Parent name required"); return; }
-    if (!address) { window.alert("⚠️ Address required"); return; }
-    if (!contactNo.match(/^\d{10}$/)) { window.alert("📞 Valid 10-digit phone required"); return; }
-    if (!emailId.includes('@')) { window.alert("✉️ Valid email required"); return; }
-    if (activities.length === 0) { window.alert("Select at least one activity"); return; }
-    if (!isSignatureNonEmpty()) { window.alert("Please provide signature"); return; }
+    if (!studentName) { alert("⚠️ Student name is required"); return; }
+    if (!parentName) { alert("⚠️ Parent name is required"); return; }
+    if (!studentAge) { alert("🎂 Please enter student's age"); return; }
+    const ageNum = parseInt(studentAge);
+    if (isNaN(ageNum) || ageNum < 1 || ageNum > 100) { alert("📅 Age must be between 1 and 100 years"); return; }
+    if (!address) { alert("🏠 Address is required"); return; }
+    if (!contactNo || !/^\d{10}$/.test(contactNo)) { alert("📞 Valid 10-digit mobile number required"); return; }
+    if (activities.length === 0) { alert("💃 Please select at least one activity"); return; }
+    if (!isSignatureNonEmpty()) { alert("🖊️ Please sign using the signature field"); return; }
 
     const newInquiryId = "INQ-" + Date.now() + "-" + Math.floor(Math.random() * 10000);
     const submittedAt = new Date().toLocaleString();
 
-    const inquiryData = { 
-      id: newInquiryId, 
-      studentName, 
-      age,
-      parentName, 
-      address, 
-      contactNo, 
-      emailId, 
-      references, 
-      activities,
-      submittedAt 
+    const inquiryData = {
+      id: newInquiryId,
+      studentName: studentName,
+      parentName: parentName,
+      studentAge: ageNum,
+      address: address,
+      contactNo: contactNo,
+      references: references,
+      activities: activities,
+      submittedAt: submittedAt
     };
-    
-    const encoded = encodeURIComponent(JSON.stringify(inquiryData));
-    const officeLink = `${window.location.origin}${window.location.pathname}?office_mode=true&data=${encoded}`;
 
-    const officeMsg = `🏫 *A ONE NATRAJ ACADEMY* - NEW INQUIRY 🎯
-━━━━━━━━━━━━━━━━━━━━━━
-🆔 ID: ${newInquiryId}
-👨‍🎓 Student: ${studentName}
-🎂 Age: ${age}
-👨‍👩‍👧 Parent: ${parentName}
-📞 Phone: ${contactNo}
-💃 Activities: ${activities.join(", ")}
-━━━━━━━━━━━━━━━━━━━━━━
-📋 *CLICK TO SCHEDULE TRIAL CLASS (OFFICE PANEL):*
-${officeLink}`;
+    const encodedData = encodeURIComponent(JSON.stringify(inquiryData));
+    const officeLink = `${BASE_URL}?office_mode=true&data=${encodedData}`;
 
-    window.open(`https://wa.me/${OFFICE_WHATSAPP}?text=${encodeURIComponent(officeMsg)}`, "_blank");
-    
+    // OFFICE WHATSAPP MESSAGE (CONTAINS THE LINK - ONLY OFFICE SEES THIS)
+    const officeMessage = `🏫 *A ONE NATRAJ ACADEMY* - FRESH INQUIRY 🎭
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+🆔 *ID:* ${newInquiryId}
+👨‍🎓 *Student:* ${studentName}
+🧒 *Age:* ${ageNum} years
+👨‍👩‍👧 *Parent:* ${parentName}
+📞 *Phone:* ${contactNo}
+💃 *Activities:* ${activities.join(", ")}
+📢 *Source:* ${references.join(", ") || "Not specified"}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+📅 *Schedule Trial:* ${officeLink}
+Once scheduled, the client automatically receives confirmation.`;
+
+    // Send to office WhatsApp (only office sees the link)
+    window.open(`https://wa.me/${OFFICE_WHATSAPP}?text=${encodeURIComponent(officeMessage)}`, "_blank");
+
     setInquiryId(newInquiryId);
     setSubmitted(true);
     
     // Reset form
     setFormData({
       studentName: '',
-      age: '',
       parentName: '',
+      studentAge: '',
       address: '',
       contactNo: '',
-      emailId: '',
       references: [],
       activities: []
     });
@@ -243,189 +267,172 @@ ${officeLink}`;
     setTimeout(() => setSubmitted(false), 5000);
   };
 
-  // Office Mode Scheduler
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('office_mode') === 'true' && urlParams.get('data')) {
-      showOfficeScheduler(urlParams.get('data'));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const showOfficeScheduler = (encodedData) => {
-    let inquiry;
-    try {
-      inquiry = JSON.parse(decodeURIComponent(encodedData));
-    } catch(e) {
-      inquiry = null;
-    }
+  const handleScheduleTrial = () => {
+    if (!officeInquiry) return;
     
-    if (!inquiry || !inquiry.studentName) {
-      document.body.innerHTML = `<div style="max-width:600px; margin:50px auto; background:white; border-radius:40px; padding:30px; text-align:center;">
-        <h2 style="color:#e76f51;">⚠️ Invalid Link</h2>
-        <p>Inquiry data not found. Please ask parent to submit again.</p>
-        <button onclick="window.location.href='${window.location.pathname}'" style="padding:12px 24px; background:#2a9d8f; color:white; border:none; border-radius:40px;">Go to Home</button>
-      </div>`;
+    const trialDate = document.getElementById('trialDate').value;
+    const trialTime = document.getElementById('trialTime').value;
+    const trialNote = document.getElementById('trialNote').value.trim();
+    
+    if (!trialDate || !trialTime) {
+      alert("⚠️ Please pick both trial date and time.");
       return;
     }
     
-    const root = document.getElementById('root');
-    if (root) {
-      root.innerHTML = `
-        <div class="form-card">
-          <div class="form-header" style="background:#2a9d8f;"><h2>📋 OFFICE USE - TRIAL CLASS SCHEDULER</h2></div>
-          <div class="form-body">
-            <div style="background:#e9f5f2; padding:16px; border-radius:20px; margin-bottom:20px;">
-              <p><strong>🆔 ID:</strong> ${inquiry.id}</p>
-              <p><strong>Student:</strong> ${inquiry.studentName}</p>
-              <p><strong>Age:</strong> ${inquiry.age || 'N/A'}</p>
-              <p><strong>Parent:</strong> ${inquiry.parentName}</p>
-              <p><strong>Phone:</strong> ${inquiry.contactNo}</p>
-              <p><strong>Activities:</strong> ${inquiry.activities.join(", ")}</p>
-            </div>
-            <div class="input-group"><label>📅 Trial Date *</label><input type="date" id="trialDate"></div>
-            <div class="input-group"><label>⏰ Trial Time *</label><input type="time" id="trialTime"></div>
-            <div class="input-group"><label>🏷️ Instructions</label><input type="text" id="trialNote" placeholder="e.g., Bring water bottle"></div>
-            <button id="sendTrialBtn" class="btn-submit" style="background:#2a9d8f;">📲 Send Confirmation to Client</button>
-            <button onclick="window.location.href='${window.location.pathname}'" style="margin-top:15px; width:100%; padding:12px; background:#e9e2d4; border:none; border-radius:40px;">← Back</button>
-          </div>
-        </div>
-      `;
-      
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const trialDateInput = document.getElementById('trialDate');
-      const trialTimeInput = document.getElementById('trialTime');
-      const sendBtn = document.getElementById('sendTrialBtn');
-      
-      if (trialDateInput) trialDateInput.value = tomorrow.toISOString().split('T')[0];
-      if (trialTimeInput) trialTimeInput.value = "17:00";
-      
-      if (sendBtn) {
-        sendBtn.addEventListener('click', () => {
-          const date = document.getElementById('trialDate').value;
-          const time = document.getElementById('trialTime').value;
-          const note = document.getElementById('trialNote').value.trim();
-          if (!date || !time) { window.alert("Select date & time"); return; }
-          const formatted = new Date(date).toLocaleDateString();
-          const msg = `🎉 *A ONE NATRAJ ACADEMY* - Trial Confirmation\n━━━━━━━━━━━━━━━━\nDear ${inquiry.parentName},\n\nTrial for *${inquiry.studentName}* (Age: ${inquiry.age})\n📅 ${formatted} at ${time}\n📍 Venue: A One Natraj Academy\n${note ? `📌 ${note}\n` : ""}\nContact: +91 8587906794\nThank you! 💃`;
-          window.open(`https://wa.me/91${inquiry.contactNo}?text=${encodeURIComponent(msg)}`, "_blank");
-          window.alert("✅ Confirmation sent to client!");
-        });
-      }
-    }
+    const formattedDate = new Date(trialDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    const clientMessage = `🎭 *A ONE NATRAJ ACADEMY* - Your Trial Class is Confirmed 🎉
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+Dear ${officeInquiry.parentName},
+
+Trial class for *${officeInquiry.studentName}* (Age: ${officeInquiry.studentAge}) has been scheduled.
+
+📅 *Date:* ${formattedDate}
+⏰ *Time:* ${trialTime}
+📍 *Venue:* A One Natraj Academy
+
+✅ Bring comfortable attire, sports shoes, and enthusiasm.
+${trialNote ? `📌 *Note:* ${trialNote}\n` : "🎯 Reach 10 mins early."}
+For queries: +91 8587906794
+
+We can't wait to see you shine! 💫`;
+    
+    const clientWhatsAppUrl = `https://wa.me/91${officeInquiry.contactNo}?text=${encodeURIComponent(clientMessage)}`;
+    window.open(clientWhatsAppUrl, "_blank");
+    
+    const officeConfirm = `✅ Trial scheduled successfully for ${officeInquiry.studentName} (${officeInquiry.contactNo}) on ${formattedDate} ${trialTime}`;
+    setTimeout(() => {
+      window.open(`https://wa.me/${OFFICE_WHATSAPP}?text=${encodeURIComponent(officeConfirm)}`, "_blank");
+    }, 900);
+    
+    alert("📲 Confirmation sent to client via WhatsApp!");
   };
 
+  // Office Mode Render
+  if (isOfficeMode && officeInquiry) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const defaultDate = tomorrow.toISOString().split('T')[0];
+    
+    return (
+      <div className="app-wrapper">
+        <div className="office-panel">
+          <div className="office-header">
+            <i className="fas fa-calendar-check"></i> OFFICE DASHBOARD :: SCHEDULE TRIAL
+          </div>
+          <div className="office-body">
+            <div className="client-details">
+              <p><span className="detail-label"><i className="fas fa-hashtag"></i> ID:</span> {officeInquiry.id}</p>
+              <p><span className="detail-label"><i className="fas fa-user-graduate"></i> Student:</span> {officeInquiry.studentName}</p>
+              <p><span className="detail-label"><i className="fas fa-birthday-cake"></i> Age:</span> {officeInquiry.studentAge} years</p>
+              <p><span className="detail-label"><i className="fas fa-user-friends"></i> Parent:</span> {officeInquiry.parentName}</p>
+              <p><span className="detail-label"><i className="fas fa-phone"></i> Contact:</span> <strong style={{color: '#1e5950'}}>+91{officeInquiry.contactNo}</strong></p>
+              <p><span className="detail-label"><i className="fas fa-heart"></i> Activities:</span> {officeInquiry.activities.join(", ")}</p>
+              <p><span className="detail-label"><i className="fas fa-map-marker-alt"></i> Address:</span> {officeInquiry.address}</p>
+              <p><span className="detail-label"><i className="fas fa-calendar-alt"></i> Submitted:</span> {officeInquiry.submittedAt}</p>
+            </div>
+            <div style={{background: '#eef3f1', borderRadius: '28px', padding: '16px', marginBottom: '24px'}}>
+              <i className="fas fa-lightbulb"></i> <strong>Pro tip:</strong> Select date/time, then send instant WhatsApp confirmation to the parent.
+            </div>
+            <div className="input-group">
+              <label><i className="fas fa-calendar-day"></i> Trial Class Date *</label>
+              <input type="date" id="trialDate" defaultValue={defaultDate} style={{width: '100%', padding: '14px', borderRadius: '32px', border: '2px solid #fbdec7'}} />
+            </div>
+            <div className="input-group">
+              <label><i className="fas fa-clock"></i> Trial Class Time *</label>
+              <input type="time" id="trialTime" defaultValue="17:30" style={{width: '100%', padding: '14px', borderRadius: '32px', border: '2px solid #fbdec7'}} />
+            </div>
+            <div className="input-group">
+              <label><i className="fas fa-pen"></i> Special Note (optional)</label>
+              <input type="text" id="trialNote" placeholder="e.g. Bring water, report at reception" style={{width: '100%', padding: '14px', borderRadius: '32px'}} />
+            </div>
+            <button className="btn-submit" onClick={handleScheduleTrial} style={{background: '#2a9d8f', marginTop: '10px'}}>
+              <i className="fab fa-whatsapp"></i> Send Confirmation to Client
+            </button>
+            <button onClick={() => window.location.href = BASE_URL} style={{marginTop: '16px', width: '100%', padding: '14px', background: '#e9e2d4', border: 'none', borderRadius: '60px', cursor: 'pointer', fontWeight: '600'}}>
+              <i className="fas fa-home"></i> Back to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Invalid office mode
+  if (isOfficeMode && !officeInquiry) {
+    return (
+      <div className="app-wrapper">
+        <div className="form-card">
+          <div className="error-box">
+            <i className="fas fa-exclamation-triangle" style={{fontSize: '44px', marginBottom: '16px', color: '#c95a3f'}}></i>
+            <h2>⚠️ Inquiry Data Missing</h2>
+            <p>This office link doesn't contain valid inquiry details.</p>
+            <button onClick={() => window.location.href = BASE_URL} style={{marginTop: '25px', padding: '12px 28px', background: '#2a9d8f', color: 'white', border: 'none', borderRadius: '40px', cursor: 'pointer', fontWeight: 'bold'}}>
+              <i className="fas fa-arrow-left"></i> Back to Inquiry Form
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main Inquiry Form
   return (
-    <div className="app-container">
-      {/* Student Inquiry Form */}
+    <div className="app-wrapper">
       <div className="form-card">
         <div className="form-header">
-          <img src="https://cdn-icons-png.flaticon.com/512/3039/3039396.png" alt="Logo" />
-          <h1>🎭 A ONE NATRAJ ACADEMY</h1>
-          <p>Student Inquiry & Trial Registration</p>
+          <img src={logo} alt="A One Natraj Academy Logo" onError={(e) => e.target.src = './logo.jpg'} />
+          <p>🌟 ENQUIRY & ADMISSION PORTAL 🌟</p>
         </div>
         <div className="form-body">
           <div className="input-group">
-            <label>🧑‍🎓 Student's Full Name *</label>
-            <input 
-              type="text" 
-              id="studentName" 
-              value={formData.studentName}
-              onChange={handleInputChange}
-              placeholder="e.g., Aadhya Sharma" 
-            />
+            <label><i className="fas fa-user-graduate"></i> Student's Full Name *</label>
+            <input type="text" id="studentName" value={formData.studentName} onChange={handleInputChange} placeholder="e.g. Aarav Sharma" />
           </div>
-          
           <div className="input-group">
-            <label>🎂 Student's Age *</label>
-            <input 
-              type="number" 
-              id="age" 
-              value={formData.age}
-              onChange={handleInputChange}
-              placeholder="e.g., 8" 
-              min="1"
-              max="100"
-            />
+            <label><i className="fas fa-user-friends"></i> Parent/Guardian Name *</label>
+            <input type="text" id="parentName" value={formData.parentName} onChange={handleInputChange} placeholder="Full name" />
           </div>
-          
           <div className="input-group">
-            <label>👨‍👩‍👧 Parent/Guardian Name *</label>
-            <input 
-              type="text" 
-              id="parentName" 
-              value={formData.parentName}
-              onChange={handleInputChange}
-              placeholder="Full name" 
-            />
+            <label><i className="fas fa-birthday-cake"></i> Student's Age *</label>
+            <input type="number" id="studentAge" value={formData.studentAge} onChange={handleInputChange} placeholder="Enter age (years)" min="1" max="100" step="1" />
+            <div style={{fontSize: '0.75rem', marginTop: '6px', color: '#8b6b4d'}}><i className="fas fa-info-circle"></i> Age must be between 1 and 100 years</div>
           </div>
-          
-          <div className="section-title">📢 Other References</div>
+          <div className="section-title"><i className="fas fa-bullhorn"></i> 📢 How did you know about us?</div>
           <div className="checkbox-group">
             {referenceOptions.map(ref => (
               <label key={ref} className="checkbox-label">
-                <input 
-                  type="checkbox" 
-                  value={ref}
-                  checked={formData.references.includes(ref)}
-                  onChange={(e) => handleCheckboxChange(ref, 'references', e.target.checked)}
-                />
+                <input type="checkbox" value={ref} checked={formData.references.includes(ref)} onChange={(e) => handleCheckboxChange(ref, 'references', e.target.checked)} />
+                {ref === 'Facebook' && <i className="fab fa-facebook"></i>}
+                {ref === 'Instagram' && <i className="fab fa-instagram"></i>}
+                {ref === 'YouTube' && <i className="fab fa-youtube"></i>}
+                {ref === 'Google' && <i className="fab fa-google"></i>}
+                {ref === 'Friend' && <i className="fas fa-user-plus"></i>}
+                {ref === 'Other' && <i className="fas fa-asterisk"></i>}
                 {ref}
               </label>
             ))}
           </div>
-
           <div className="input-group">
-            <label>🏠 Address *</label>
-            <textarea 
-              rows="2" 
-              id="address" 
-              value={formData.address}
-              onChange={handleInputChange}
-              placeholder="Street, City, Pin code"
-            />
+            <label><i className="fas fa-home"></i> Address *</label>
+            <textarea rows="2" id="address" value={formData.address} onChange={handleInputChange} placeholder="Complete address with landmark"></textarea>
           </div>
-          
           <div className="input-group">
-            <label>📞 Contact Number * (10 digit)</label>
-            <input 
-              type="tel" 
-              id="contactNo" 
-              maxLength="10" 
-              value={formData.contactNo}
-              onChange={handleInputChange}
-              placeholder="9876543210" 
-            />
+            <label><i className="fas fa-phone-alt"></i> Contact Number * (10 digit)</label>
+            <input type="tel" id="contactNo" value={formData.contactNo} onChange={handleInputChange} placeholder="9876543210" maxLength="10" />
           </div>
-          
-          <div className="input-group">
-            <label>✉️ Email ID *</label>
-            <input 
-              type="email" 
-              id="emailId" 
-              value={formData.emailId}
-              onChange={handleInputChange}
-              placeholder="parent@example.com" 
-            />
-          </div>
-
-          <div className="section-title">💃 Activities Interested In *</div>
+          <div className="section-title"><i className="fas fa-heartbeat"></i> 💃 Activities Interested In *</div>
           <div className="checkbox-group">
             {activityOptions.map(activity => (
               <label key={activity} className="checkbox-label">
-                <input 
-                  type="checkbox" 
-                  value={activity}
-                  checked={formData.activities.includes(activity)}
-                  onChange={(e) => handleCheckboxChange(activity, 'activities', e.target.checked)}
-                />
+                <input type="checkbox" value={activity} checked={formData.activities.includes(activity)} onChange={(e) => handleCheckboxChange(activity, 'activities', e.target.checked)} />
+                {activity === 'Dance' && '💃'} {activity === 'Fitness' && '💪'} {activity === 'Music' && '🎵'}
+                {activity === 'Aerial Dance' && '🧗'} {activity === 'Gymnastics' && '🤸'} {activity === 'Wedding Choreography' && '💍'}
+                {activity === 'Theatre' && '🎭'} {activity === 'Dance Courses' && '📚'} {activity === 'Teaching Courses' && '🎓'}
                 {activity}
               </label>
             ))}
           </div>
-
-          <div className="section-title">🖊️ Digital Signature</div>
+          <div className="section-title"><i className="fas fa-pen-fancy"></i> 🖊️ Digital Signature (Parent/Guardian)</div>
           <div className="signature-area">
             <canvas 
               ref={canvasRef}
@@ -440,22 +447,18 @@ ${officeLink}`;
               onTouchMove={draw}
               onTouchEnd={stopDrawing}
             />
-            <button 
-              type="button" 
-              onClick={clearSignature}
-              style={{marginTop: '10px', background: '#e9e2d4', border: 'none', padding: '8px 16px', borderRadius: '40px', cursor: 'pointer'}}
-            >
-              🗑️ Clear
-            </button>
+            <button className="sig-btn" onClick={clearSignature}><i className="fas fa-eraser"></i> Clear Signature</button>
           </div>
-
-          <button className="btn-submit" onClick={handleSubmit}>
-            📨 Submit Inquiry → Send to Office
+          <button className="btn-submit" onClick={handleSubmit} disabled={submitted}>
+            <i className="fas fa-paper-plane"></i> {submitted ? 'Submitted!' : 'Submit Inquiry'}
           </button>
-          
           {submitted && (
             <div className="success-message" style={{display: 'block'}}>
-              ✅ Inquiry submitted! ID: {inquiryId}<br />Office will schedule trial and contact you.
+              ✅ <strong>✨ Inquiry submitted successfully!</strong><br /><br />
+              🆔 <strong>Inquiry ID:</strong> {inquiryId}<br />
+              🧒 <strong>Student Age:</strong> {formData.studentAge} years<br /><br />
+              📢 Our office has received your request. You will receive trial class confirmation <strong>within 24 hours</strong> on WhatsApp.<br /><br />
+              💡 Please keep the inquiry ID for reference. Thank you for choosing A One Natraj Academy! 🎉
             </div>
           )}
         </div>
