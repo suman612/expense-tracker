@@ -412,7 +412,7 @@ We can't wait to see you shine! 💫`;
       <div className="form-card">
         <div className="form-header">
           <img src={logo} alt="A One Natraj Academy Logo" onError={(e) => e.target.src = 'https://placehold.co/300x100?text=A+One+Natraj+Academy'} />
-          <p>🌟 ENQUIRY & ADMISSION PORTAL 🌟</p>
+          <p>🌟 ENQUIRY FORM 🌟</p>
         </div>
         <div className="form-body">
           <div className="input-group">
