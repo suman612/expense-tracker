@@ -1,6 +1,5 @@
 // App.jsx
 import React, { useState, useRef, useEffect } from 'react';
-import logo from './logo.jpg'
 import './App.css';
 
 const App = () => {
@@ -18,7 +17,6 @@ const App = () => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [isOfficeMode, setIsOfficeMode] = useState(false);
   const [officeInquiry, setOfficeInquiry] = useState(null);
-  const [accessDenied, setAccessDenied] = useState(false);
   
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
@@ -35,35 +33,21 @@ const App = () => {
     'Wedding Choreography', 'Theatre', 'Dance Courses', 'Teaching Courses'
   ];
 
-  // Check for office mode on mount with enhanced security
+  // Check for office mode on mount
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const officeMode = urlParams.get('office_mode');
     const encodedData = urlParams.get('data');
-    const accessToken = urlParams.get('token');
-    
-    // Check if the link contains a valid security token
-    // The token is generated from the office phone number
-    const expectedToken = btoa(OFFICE_WHATSAPP + "academy_secret_2024");
     
     if (officeMode === 'true' && encodedData) {
-      // Verify the access token
-      if (accessToken !== expectedToken) {
-        setAccessDenied(true);
-        return;
-      }
-      
       try {
         const inquiry = JSON.parse(decodeURIComponent(encodedData));
         if (inquiry && inquiry.studentName) {
           setIsOfficeMode(true);
           setOfficeInquiry(inquiry);
-        } else {
-          setAccessDenied(true);
         }
       } catch (e) {
         console.error('Failed to decode inquiry data');
-        setAccessDenied(true);
       }
     }
   }, []);
@@ -244,12 +228,10 @@ const App = () => {
     };
 
     const encodedData = encodeURIComponent(JSON.stringify(inquiryData));
-    // Generate a secure token that only the office phone can use
-    const secureToken = btoa(OFFICE_WHATSAPP + "academy_secret_2024");
-    const officeLink = `${BASE_URL}?office_mode=true&data=${encodedData}&token=${secureToken}`;
+    const officeLink = `${BASE_URL}?office_mode=true&data=${encodedData}`;
 
-    // OFFICE WHATSAPP MESSAGE (CONTAINS THE LINK - ONLY OFFICE SEES THIS)
-    const officeMessage = `🏫 *A ONE NATRAJ ACADEMY* - FRESH INQUIRY 🎭
+    // OFFICE WHATSAPP MESSAGE - THIS IS THE ONLY PLACE THE LINK APPEARS
+    const officeMessage = `🏫 *A ONE NATRAJ ACADEMY* - NEW INQUIRY 🎭
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 🆔 *ID:* ${newInquiryId}
 👨‍🎓 *Student:* ${studentName}
@@ -260,13 +242,12 @@ const App = () => {
 📢 *Source:* ${references.join(", ") || "Not specified"}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔐 *SECURE OFFICE LINK (Only accessible from authorized device):*
+📋 *CLICK BELOW TO SCHEDULE TRIAL CLASS:*
 ${officeLink}
 
-⚠️ This link is protected and will ONLY work when accessed from the authorized office number.
-If someone else tries to open it, access will be denied.`;
+After scheduling, the client will automatically receive confirmation.`;
 
-    // Send to office WhatsApp (only office sees the link)
+    // Send to office WhatsApp
     window.open(`https://wa.me/${OFFICE_WHATSAPP}?text=${encodeURIComponent(officeMessage)}`, "_blank");
 
     setInquiryId(newInquiryId);
@@ -327,33 +308,7 @@ We can't wait to see you shine! 💫`;
     alert("📲 Confirmation sent to client via WhatsApp!");
   };
 
-  // Access Denied Page - When someone tries to open the office link without authorization
-  if (accessDenied) {
-    return (
-      <div className="app-wrapper">
-        <div className="form-card">
-          <div className="error-box" style={{ textAlign: 'center' }}>
-            <i className="fas fa-ban" style={{ fontSize: '60px', marginBottom: '20px', color: '#e74c3c' }}></i>
-            <h2 style={{ color: '#c0392b', marginBottom: '15px' }}>⛔ Access Denied</h2>
-            <p style={{ marginBottom: '20px', fontSize: '16px' }}>
-              This office dashboard link is protected and can only be accessed from the authorized office number.
-            </p>
-            <p style={{ marginBottom: '30px', color: '#7f8c8d' }}>
-              If you are an authorized staff member, please ensure you are using the correct link from WhatsApp.
-            </p>
-            <button 
-              onClick={() => window.location.href = BASE_URL} 
-              style={{ padding: '12px 28px', background: '#2a9d8f', color: 'white', border: 'none', borderRadius: '40px', cursor: 'pointer', fontWeight: 'bold' }}
-            >
-              <i className="fas fa-home"></i> Return to Homepage
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Office Mode Render (Only accessible with valid token)
+  // Office Mode Render
   if (isOfficeMode && officeInquiry) {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -364,9 +319,6 @@ We can't wait to see you shine! 💫`;
         <div className="office-panel">
           <div className="office-header">
             <i className="fas fa-calendar-check"></i> OFFICE DASHBOARD :: SCHEDULE TRIAL
-            <span style={{ fontSize: '12px', marginLeft: 'auto', background: 'rgba(255,255,255,0.2)', padding: '4px 12px', borderRadius: '20px' }}>
-              <i className="fas fa-shield-alt"></i> Secured Access
-            </span>
           </div>
           <div className="office-body">
             <div className="client-details">
@@ -380,7 +332,7 @@ We can't wait to see you shine! 💫`;
               <p><span className="detail-label"><i className="fas fa-calendar-alt"></i> Submitted:</span> {officeInquiry.submittedAt}</p>
             </div>
             <div style={{background: '#eef3f1', borderRadius: '28px', padding: '16px', marginBottom: '24px'}}>
-              <i className="fas fa-shield-alt" style={{ color: '#1e5950' }}></i> <strong>Secure Session:</strong> You are accessing this dashboard from an authorized device.
+              <i className="fas fa-lightbulb"></i> <strong>Pro tip:</strong> Select date/time, then send instant WhatsApp confirmation to the parent.
             </div>
             <div className="input-group">
               <label><i className="fas fa-calendar-day"></i> Trial Class Date *</label>
@@ -406,12 +358,12 @@ We can't wait to see you shine! 💫`;
     );
   }
 
-  // Main Inquiry Form
+  // Main Inquiry Form - Customer never sees any office link
   return (
     <div className="app-wrapper">
       <div className="form-card">
         <div className="form-header">
-          <img src={logo} alt="A One Natraj Academy Logo" onError={(e) => e.target.src = 'https://placehold.co/300x100?text=A+One+Natraj+Academy'} />
+          <img src="./logo.jpg" alt="A One Natraj Academy Logo" onError={(e) => e.target.src = 'https://placehold.co/300x100?text=A+One+Natraj+Academy'} />
           <p>🌟 ENQUIRY & ADMISSION PORTAL 🌟</p>
         </div>
         <div className="form-body">
