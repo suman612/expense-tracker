@@ -351,3 +351,41 @@ canvas {
 .checkbox-label:active {
   transform: scale(0.96);
 }
+
+/* App.css - Add these new styles at the end */
+.error-box {
+  background: #fff1f0;
+  border-radius: 32px;
+  padding: 40px;
+  text-align: center;
+  color: #b83b2e;
+  margin: 20px;
+  border: 1px solid #ffc6be;
+  animation: fadeSlide 0.5s;
+}
+
+.error-box i {
+  font-size: 60px;
+  margin-bottom: 20px;
+  color: #e74c3c;
+}
+
+.error-box h2 {
+  color: #c0392b;
+  margin-bottom: 15px;
+  font-size: 28px;
+}
+
+.error-box p {
+  margin-bottom: 20px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.office-header span {
+  font-size: 12px;
+  margin-left: auto;
+  background: rgba(255,255,255,0.2);
+  padding: 4px 12px;
+  border-radius: 20px;
+}
